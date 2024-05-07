@@ -17,11 +17,11 @@
  */
 
 global using DSharpPlus;
-global using DSharpPlus.CommandsNext.Attributes;
-global using DSharpPlus.CommandsNext.Exceptions;
+global using DSharpPlus.Commands;
+global using DSharpPlus.Commands.ContextChecks;
+global using DSharpPlus.Commands.Exceptions;
 global using DSharpPlus.Entities;
 global using DSharpPlus.EventArgs;
-global using DSharpPlus.SlashCommands;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.Logging;
 global using Serilog;

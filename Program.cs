@@ -36,7 +36,7 @@ internal class Program
 
     public static DiscordChannel? lastdiscordChannel = null;
 
-    public static string[] TableFlips = new string[] {
+    public static string[] TableFlips = [
         "┳━┳ ヽ(ಠل͜ಠ)ﾉ",
         "┬─┬ノ( º _ ºノ)",
         "(˚Õ˚)ر ~~~~╚╩╩╝",
@@ -46,7 +46,7 @@ internal class Program
         "(┛◉Д◉)┛彡┻━┻",
         "(☞ﾟヮﾟ)☞ ┻━┻",
         "(┛ಠ_ಠ)┛彡┻━┻"
-        };
+        ];
 
     private static void Main(string[] args)
     {
@@ -82,13 +82,13 @@ internal class Program
         Config.Discord.Token = Environment.GetEnvironmentVariable("Discord_Token") ?? Config.Discord.Token;
         Config.Discord.DefaultActivity = Environment.GetEnvironmentVariable("Discord_DefaultActivity") ?? Config.Discord.DefaultActivity;
 
-        if (Enum.TryParse<ActivityType>(Environment.GetEnvironmentVariable("Discord_DefaultActivityType"), out ActivityType at))
+        if (Enum.TryParse<DiscordActivityType>(Environment.GetEnvironmentVariable("Discord_DefaultActivityType"), out DiscordActivityType at))
         {
             Config.Discord.DefaultActivityType = at;
         }
         else
         {
-            Config.Discord.DefaultActivityType = ActivityType.ListeningTo;
+            Config.Discord.DefaultActivityType = DiscordActivityType.ListeningTo;
         }
 
         Config.SaveSetting();
@@ -111,39 +111,40 @@ internal class Program
 
         Client = new DiscordClient(cfg);
 
-        Client.Ready += this.Client_Ready;
+        Client.SessionCreated += Client_SessionCreated;
+
         Client.GuildAvailable += this.Client_GuildAvailable;
         Client.ClientErrored += this.Client_ClientError;
 
-        var slash = Client.UseSlashCommands();
+        var cmds = Client.UseCommands();
 
-        slash.SlashCommandExecuted += Slash_SlashCommandExecuted;
-        slash.SlashCommandErrored += Slash_SlashCommandErrored;
-        slash.SlashCommandInvoked += Slash_SlashCommandInvoked;
+        cmds.CommandExecuted += CommandExecuted;
+        cmds.CommandErrored += CommandErrored;
 
-        slash.RegisterCommands<BotSlashCommands>();
+        //cmds.RegisterCommands<BotSlashCommands>();
+        cmds.AddCommands<BotCommands>();
 
         await Client.ConnectAsync();
 
         await Task.Delay(-1);
     }
 
-    private async Task Slash_SlashCommandInvoked(SlashCommandsExtension sender, DSharpPlus.SlashCommands.EventArgs.SlashCommandInvokedEventArgs e)
-    {
-        e.Context.Client.Logger.LogInformation(BotEventId, "{Username} successfully invoked '{CommandName}'", e.Context.User.Username, e.Context.CommandName);
+    //private async Task Slash_SlashCommandInvoked(SlashCommandsExtension sender, DSharpPlus.SlashCommands.EventArgs.SlashCommandInvokedEventArgs e)
+    //{
+    //    e.Context.Client.Logger.LogInformation(BotEventId, "{Username} successfully invoked '{CommandName}'", e.Context.User.Username, e.Context.CommandName);
 
-        await e.Context.Client.UpdateStatusAsync(new DiscordActivity()
-        {
-            ActivityType = ActivityType.Playing,
-            Name = "Running commands..."
-        }, UserStatus.Idle);
-    }
+    //    await e.Context.Client.UpdateStatusAsync(new DiscordActivity()
+    //    {
+    //        ActivityType = ActivityType.Playing,
+    //        Name = "Running commands..."
+    //    }, UserStatus.Idle);
+    //}
 
 #nullable disable
 
-    private async Task Slash_SlashCommandErrored(SlashCommandsExtension sender, DSharpPlus.SlashCommands.EventArgs.SlashCommandErrorEventArgs e)
+    private async Task CommandErrored(CommandsExtension sender, DSharpPlus.Commands.EventArgs.CommandErroredEventArgs e)
     {
-        e.Context.Client.Logger.LogError(BotEventId, "{Username} tried executing '{CommandName}' but it errored: {Type}: {Message}", e.Context.User.Username, e.Context?.CommandName ?? "<unknown command>", e.Exception.GetType(), e.Exception.Message ?? "<no message>");
+        e.Context.Client.Logger.LogError(BotEventId, "{Username} tried executing '{CommandName}' but it errored: {Type}: {Message}", e.Context.User.Username, e.Context?.Command.Name ?? "<unknown command>", e.Exception.GetType(), e.Exception.Message ?? "<no message>");
 
         if (e.Exception is ChecksFailedException)
         {
@@ -155,30 +156,31 @@ internal class Program
                 Description = $"{emoji} You do not have the permissions required to execute this command.",
                 Color = new DiscordColor(0xFF0000)
             };
-            await e.Context.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"{embed}"));
+            await e.Context.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"{embed}"));
+            //await e.Context.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"{embed}"));
         }
 
         await e.Context.Client.UpdateStatusAsync(new DiscordActivity()
         {
-            ActivityType = ActivityType.Watching,
+            ActivityType = DiscordActivityType.Watching,
             Name = "Errors!"
-        }, UserStatus.DoNotDisturb);
+        }, DiscordUserStatus.DoNotDisturb);
     }
 
 #nullable enable
 
-    private async Task Slash_SlashCommandExecuted(SlashCommandsExtension sender, DSharpPlus.SlashCommands.EventArgs.SlashCommandExecutedEventArgs e)
+    private async Task CommandExecuted(CommandsExtension sender, DSharpPlus.Commands.EventArgs.CommandExecutedEventArgs e)
     {
-        e.Context.Client.Logger.LogInformation(BotEventId, "{Username} successfully executed '{CommandName}'", e.Context.User.Username, e.Context.CommandName);
+        e.Context.Client.Logger.LogInformation(BotEventId, "{Username} successfully executed '{CommandName}'", e.Context.User.Username, e.Context.Command.Name);
 
         await e.Context.Client.UpdateStatusAsync(new DiscordActivity()
         {
             ActivityType = Config.Discord.DefaultActivityType,
             Name = Config.Discord.DefaultActivity
-        }, UserStatus.Online);
+        }, DiscordUserStatus.Online);
     }
 
-    private async Task Client_Ready(DiscordClient sender, ReadyEventArgs e)
+    private async Task Client_SessionCreated(DiscordClient sender, SessionReadyEventArgs args)
     {
         sender.Logger.LogInformation(BotEventId, "Client is ready to process events.");
 
@@ -186,7 +188,7 @@ internal class Program
         {
             ActivityType = Config.Discord.DefaultActivityType,
             Name = Config.Discord.DefaultActivity
-        }, UserStatus.Online);
+        }, DiscordUserStatus.Online);
     }
 
     private Task Client_GuildAvailable(DiscordClient sender, GuildCreateEventArgs e)

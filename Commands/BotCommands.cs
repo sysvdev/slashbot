@@ -1,0 +1,56 @@
+﻿/*
+ *      This file is part of SlashBot distribution (https://github.com/sysvdev/slashbot).
+ *      Copyright (c) 2023 contributors
+ *
+ *      SlashBot is free software: you can redistribute it and/or modify
+ *      it under the terms of the GNU General Public License as published by
+ *      the Free Software Foundation, either version 3 of the License, or
+ *      (at your option) any later version.
+ *
+ *      SlashBot is distributed in the hope that it will be useful,
+ *      but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *      GNU General Public License for more details.
+ *
+ *      You should have received a copy of the GNU General Public License
+ *      along with SlashBot.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+namespace SlashBot.Commands;
+
+public class BotCommands
+{
+    [Command("table_flip"), Description("Post a table flip")]
+    [RequireGuild()]
+    [RequirePermissions(DiscordPermissions.SendMessages)]
+    public static async Task TableFlip(CommandContext ctx)
+    {
+        try
+        {
+            string flip = Program.TableFlips[new Random().Next(Program.TableFlips.Length)];
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent(flip));
+            //await ctx.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent(flip));
+        }
+        catch (Exception ex)
+        {
+            await ctx.RespondAsync(new DiscordInteractionResponseBuilder().WithContent($"An exception occured: `{ex.GetType()}: {ex.Message}`"));
+            //await ctx.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"An exception occured: `{ex.GetType()}: {ex.Message}`"));
+        }
+    }
+
+    [Command("ping")]
+    [Description("Replies with Pong and Discord Websocket latency for Client to your ping")]
+    public static async Task Ping(CommandContext context) => await context.RespondAsync(new DiscordInteractionResponseBuilder()
+    {
+        Content = $"Pong! Discord Websocket latency for Client is {context.Client.Ping}ms.",
+        IsEphemeral = true
+    });
+
+    //[Command("ping")]
+    //[Description("Replies with Pong and Discord Websocket latency for Client to your ping")]
+    //public static async Task Ping(CommandContext context) => await context.CreateResponseAsync(DiscordInteractionResponseType.ChannelMessageWithSource, new()
+    //{
+    //    Content = $"Pong! Discord Websocket latency for Client is {context.Client.Ping}ms.",
+    //    IsEphemeral = true
+    //});
+}
