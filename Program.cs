@@ -16,6 +16,8 @@
  *      along with SlashBot.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace SlashBot;
 
 internal class Program
@@ -98,6 +100,10 @@ internal class Program
     {
         ILoggerFactory logFactory = new LoggerFactory().AddSerilog(logger);
 
+        ServiceProvider serviceProvider = new ServiceCollection()
+        .AddSingleton(logFactory)
+        .BuildServiceProvider();
+
         var cfg = new DiscordConfiguration
         {
             Token = Config.Discord.Token,
@@ -116,13 +122,16 @@ internal class Program
         Client.GuildAvailable += this.Client_GuildAvailable;
         Client.ClientErrored += this.Client_ClientError;
 
-        var cmds = Client.UseCommands();
+        var cmds = Client.UseCommands(new CommandsConfiguration
+        {
+            ServiceProvider = serviceProvider
+        });
 
         cmds.CommandExecuted += CommandExecuted;
         cmds.CommandErrored += CommandErrored;
 
         //cmds.RegisterCommands<BotSlashCommands>();
-        cmds.AddCommands<BotCommands>();
+        cmds.AddCommands(typeof(BotCommands).Assembly);
 
         await Client.ConnectAsync();
 
